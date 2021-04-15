@@ -12,7 +12,7 @@ const Version = "SIP/2.0"
 //The method is the primary function that a REQUEST is meant
 //to invoke on a server.  The method is carried in the request
 //message itself.  Example methods are INVITE and BYE.
-type Method = string
+type Method = []byte
 
 // https://tools.ietf.org/html/rfc3261
 // 7.1 - Method: This specification defines six methods:
@@ -22,22 +22,22 @@ type Method = string
 // OPTIONS for querying servers about their capabilities.
 // SIP extensions, documented in standards track RFCs, may define
 // additional methods.
-const (
-	REGISTER  Method = "REGISTER"
-	INVITE    Method = "INVITE"
-	ACK       Method = "ACK"
-	CANCEL    Method = "CANCEL"
-	BYE       Method = "BYE"
-	OPTIONS   Method = "OPTIONS"
-	SUBSCRIBE Method = "SUBSCRIBE"
-	NOTIFY    Method = "NOTIFY"
-	REFER     Method = "REFER"
-	INFO      Method = "INFO"
+var (
+	REGISTER  = Method("REGISTER")
+	INVITE    = Method("INVITE")
+	ACK       = Method("ACK")
+	CANCEL    = Method("CANCEL")
+	BYE       = Method("BYE")
+	OPTIONS   = Method("OPTIONS")
+	SUBSCRIBE = Method("SUBSCRIBE")
+	NOTIFY    = Method("NOTIFY")
+	REFER     = Method("REFER")
+	INFO      = Method("INFO")
 )
 
 var (
 	//SP means space. This is the separator between the Request Line fields.
-	SP = []byte{' '}
+	SP = byte(' ')
 )
 
 //Request type holds the data that identifies a request from a User Agent Client(UAC).
@@ -47,7 +47,7 @@ var (
 type Request struct {
 	Method     Method
 	RequestURI string //RFC 3261 Section 8.1.1.1
-	Headers    []HeaderField
+	Headers    []Header
 	Body       []byte
 }
 
@@ -55,15 +55,15 @@ func (r Request) Write(w io.Writer) error {
 	var b bytes.Buffer
 	// RequestLine
 	b.Write([]byte(r.Method))
-	b.Write(SP)
-	b.Write([]byte(r.RequestURI))
-	b.Write(SP)
+	b.WriteByte(SP)
+	b.WriteString(string(r.RequestURI))
+	b.WriteByte(SP)
 	b.Write([]byte(Version))
 	b.Write(CRLF)
 
 	//Headers
-	for _, hf := range r.Headers {
-		hf.Write(&b)
+	for _, h := range r.Headers {
+		WriteHeader(&b, h)
 	}
 
 	//Header and Body separation of 1 line
