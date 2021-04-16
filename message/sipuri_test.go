@@ -12,8 +12,8 @@ func TestURIFormat(t *testing.T) {
 	const want = "sip:alice@atlanta.com;transport=TCP?subject=project%20x&priority=urgent&to=alice%40atlanta.com"
 	user := "alice"
 	host := "atlanta.com"
-	params := []message.ParamField{
-		{Name: message.Transport, Value: "TCP"},
+	params := []message.KVP{
+		{Key: message.Transport, Value: "TCP"},
 	}
 	uriHeaders := []message.URIHeaderField{
 		{Name: []rune("subject"), Value: []rune(url.PathEscape("project x"))},

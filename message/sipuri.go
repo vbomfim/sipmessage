@@ -13,6 +13,10 @@ var (
 	SIPSScheme = URIScheme("sips:")
 )
 
+const (
+	ParamKVPSep = byte('=')
+)
+
 //The URIParams are defined in Section 19.1
 const (
 	User        = "user"
@@ -44,7 +48,7 @@ type SIPURI struct {
 	Scheme  *URIScheme
 	User    string
 	Host    string
-	Params  []ParamField
+	Params  []KVP
 	Headers []URIHeaderField
 }
 
@@ -106,7 +110,7 @@ func (s *SIPURI) printParams(b *bytes.Buffer) {
 	//Print the params
 	for _, p := range s.Params {
 		b.WriteByte(';')
-		p.Write(b)
+		p.Write(b, ParamKVPSep)
 	}
 
 }

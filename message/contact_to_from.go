@@ -31,7 +31,7 @@ func (c From) String() string {
 type Contact struct {
 	DisplayName string
 	SIPURI      SIPURI
-	Params      []ParamField
+	Params      []KVP
 }
 
 func (_ *Contact) Tag() string {
@@ -42,7 +42,7 @@ func (c Contact) String() string {
 	return printInContactFormat(c.DisplayName, c.SIPURI, c.Params)
 }
 
-func printInContactFormat(displayName string, SIPURI SIPURI, params []ParamField) string {
+func printInContactFormat(displayName string, SIPURI SIPURI, params []KVP) string {
 	var b bytes.Buffer
 
 	needAngleBrackets := displayName != "" || len(params) > 0 || SIPURI.FormatedContainsSep()
@@ -73,7 +73,7 @@ func printInContactFormat(displayName string, SIPURI SIPURI, params []ParamField
 		//Print the params
 		for _, p := range params {
 			b.WriteByte(';')
-			p.Write(&b)
+			p.Write(&b, ParamKVPSep)
 		}
 	}
 

@@ -2,7 +2,9 @@ package message
 
 import (
 	"bytes"
+	"fmt"
 	"io"
+	"strings"
 )
 
 //Version hold the SIP version string used on Request Lines
@@ -12,7 +14,7 @@ const Version = "SIP/2.0"
 //The method is the primary function that a REQUEST is meant
 //to invoke on a server.  The method is carried in the request
 //message itself.  Example methods are INVITE and BYE.
-type Method = []byte
+type Method = string
 
 // https://tools.ietf.org/html/rfc3261
 // 7.1 - Method: This specification defines six methods:
@@ -33,6 +35,8 @@ var (
 	NOTIFY    = Method("NOTIFY")
 	REFER     = Method("REFER")
 	INFO      = Method("INFO")
+
+	Methods = []Method{REGISTER, INVITE, ACK, CANCEL, BYE, OPTIONS, SUBSCRIBE, NOTIFY, REFER, INFO}
 )
 
 var (
@@ -74,4 +78,72 @@ func (r Request) Write(w io.Writer) error {
 	}
 	_, err := w.Write(b.Bytes())
 	return err
+}
+
+//ParseRequest parses a string to a Request instance
+func ParseRequest(rawData string) (*Request, error) {
+	var (
+		req Request
+		err error
+	)
+
+	i := strings.Index(rawData, strCRLF) // index of the first EOL
+	err = parseRequestLine(rawData[:i], &req)
+	if err != nil {
+		return nil, fmt.Errorf("invalid argument %w", err)
+	}
+
+	emptyLineIndex := strings.Index(rawData, strDoubleCRLF) // index of an empty line after the headers.
+
+	headers, err := ParseHeaders(rawData[i+2 : emptyLineIndex]) // +2 means CRLF size
+	if err != nil {
+		return nil, fmt.Errorf("invalid argument %w", err)
+	}
+	req.Headers = headers
+
+	//TODO: Body parse?
+
+	return &req, nil
+}
+
+//parseRequestLine parses the Request-Line
+func parseRequestLine(line string, req *Request) error {
+	const (
+		fieldsN         = 3
+		fieldMethod     = 0
+		fieldRequestURI = 1
+		fieldVersion    = 2
+	)
+	fields := strings.Fields(line)
+
+	// Confirms the number of fields
+	if len(fields) != fieldsN {
+		return fmt.Errorf("mal-formatted request-line %s", line)
+	}
+
+	// Parsing the Request-Line Method field
+	if method, OK := parseMethod(fields[fieldMethod]); OK {
+		req.Method = *method
+	} else {
+		return fmt.Errorf("mal-formatted Method in the request-line %s", line)
+	}
+	// Assign the requestURI as string. It doesn't parse.
+	req.RequestURI = fields[fieldRequestURI]
+
+	// Confirms the version is compatible.
+	if Version != fields[fieldVersion] {
+		return fmt.Errorf("incompatible sip version %s", line)
+	}
+
+	return nil
+}
+
+//parseMethod verify if the value is a valid Method and returns the corresponding Method instance
+func parseMethod(value string) (*Method, bool) {
+	for _, m := range Methods {
+		if m == Method(value) {
+			return &m, true
+		}
+	}
+	return nil, false
 }

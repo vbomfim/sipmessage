@@ -1,6 +1,7 @@
 package message_test
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -26,7 +27,7 @@ func TestMessageFormat(t *testing.T) {
 
 		contact := message.Contact{DisplayName: "Bob", SIPURI: message.SIPURI{Scheme: &message.SIPSScheme, User: "bob", Host: "biloxi.example.com"}}
 		from := message.From{DisplayName: contact.DisplayName, SIPURI: contact.SIPURI}
-		from.Params = []message.ParamField{{Name: "tag", Value: "a73kszlfl"}}
+		from.Params = []message.KVP{{Key: "tag", Value: "a73kszlfl"}}
 		to := message.To{DisplayName: "A. G. Bell", SIPURI: message.SIPURI{Scheme: &message.SIPSScheme, User: "agb", Host: "bell-telephone.com"}}
 		callid := message.CallID("1j9FpLxk3uxtm8tn@biloxi.example.com")
 		mf := message.MaxForwards(70)
@@ -57,7 +58,16 @@ func TestMessageFormat(t *testing.T) {
 		if want != got {
 			t.Errorf("request different from expected.\nwant: \n%s#############\ngot: \n%s#############", want, got)
 		}
+		fmt.Println(got)
 	})
+}
+
+func TestParseRequest(t *testing.T) {
+
+	reqF := getRegisterMessageSample()
+	//req, _ :=
+	message.ParseRequest(reqF)
+
 }
 
 func getRegisterMessageSample() string {

@@ -18,7 +18,7 @@ func (c CSeq) String() string {
 	var b bytes.Buffer
 	b.WriteString(strconv.FormatUint(uint64(c.Seq), 10))
 	b.WriteByte(SP)
-	b.Write(c.Method)
+	b.WriteString(c.Method)
 
 	return b.String()
 }
