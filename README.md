@@ -1,2 +1,2 @@
 # sipmessage
-Holds the sip messages objects and parser
+Holds the sip message objects and parser
