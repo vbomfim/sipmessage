@@ -6,11 +6,11 @@ import (
 	"strings"
 )
 
-//Header is a type used by the SIP Headers. []byte is a convenient way to parse and write.
-type Header interface {
-	Tag() string
-	String() string
-}
+const (
+	ParamSep    = byte(';')
+	ParamSepStr = string(ParamSep)
+	ParamKVPSep = byte('=')
+)
 
 var (
 	//HeaderSep is the separator used between the Header and its value when printed
@@ -20,6 +20,13 @@ var (
 	strCRLF       = string(CRLF)
 	strDoubleCRLF = string([]byte{'\r', '\n', '\r', '\n'})
 )
+
+//Header is a type used by the SIP Headers. []byte is a convenient way to parse and write.
+type Header interface {
+	Tag() string
+	CTag() string // Tag in the compact form
+	String() string
+}
 
 //Write method writes the HeaderField following the section 7.3.1
 func WriteHeader(b *bytes.Buffer, h Header) {
@@ -70,17 +77,25 @@ func ParseHeaders(line string) ([]Header, error) {
 func ParseHeader(b []byte) (Header, error) {
 
 	if kvp, OK := ParseKVP(b, HeaderSep); OK {
-		switch strings.ToUpper(kvp.Key) {
-		case "MAX-FORWARDS":
+		switch strings.ToLower(kvp.Key) {
+		case "max-forwards":
 			return ParseMaxForwards(kvp.Value)
-		case "FROM":
-		case "TO":
-		case "CONTACT":
+		case "from", "f":
+			return ParseContact(kvp.Value, NewFrom)
+		case "to", "t":
+			return ParseContact(kvp.Value, NewTo)
+		case "contact", "m":
+			return ParseContact(kvp.Value, NewContact)
+		case "call-id", "i":
+			return ParseCallID(kvp.Value)
+		case "content-length", "l":
+			return ParseContentLength(kvp.Value)
+		case "cseq":
+			return ParseCSeq(kvp.Value)
 		}
 	}
 
-	temp := MaxForwards(70)
-	return &temp, nil
+	return nil, nil
 }
 
 func isSpaceOrTab(char byte) bool {

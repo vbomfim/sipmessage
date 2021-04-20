@@ -1,6 +1,7 @@
 package message_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/vbomfim/sipmessage/message"
@@ -30,8 +31,18 @@ func TestToHeader(t *testing.T) {
 		want := "To"
 		to := message.To{}
 		got := to.Tag()
+
 		if want != got {
 			t.Fatalf("wrong TAG\nwant:\n%s\ngot:\n%s", want, got)
 		}
 	})
+}
+
+func TestParseContact(t *testing.T) {
+	contactStr := "\"Bob Jonnes\" <sip:bob@biloxy.example.com;myparam=123?hparam1=456&hparam2=789>;tag=a73kszlfl"
+	got, err := message.ParseContact(contactStr, message.NewContact)
+	if err != nil {
+		t.Fatalf("failed parsing contact %v", err)
+	}
+	fmt.Println(got)
 }

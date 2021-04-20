@@ -24,7 +24,6 @@ func TestMessageFormat(t *testing.T) {
 			Scheme: &message.SIPSScheme,
 			Host:   "ss2.biloxi.example.com",
 		}
-
 		contact := message.Contact{DisplayName: "Bob", SIPURI: message.SIPURI{Scheme: &message.SIPSScheme, User: "bob", Host: "biloxi.example.com"}}
 		from := message.From{DisplayName: contact.DisplayName, SIPURI: contact.SIPURI}
 		from.Params = []message.KVP{{Key: "tag", Value: "a73kszlfl"}}
@@ -65,9 +64,8 @@ func TestMessageFormat(t *testing.T) {
 func TestParseRequest(t *testing.T) {
 
 	reqF := getRegisterMessageSample()
-	//req, _ :=
-	message.ParseRequest(reqF)
-
+	req, _ := message.ParseRequest(reqF)
+	fmt.Println(req)
 }
 
 func getRegisterMessageSample() string {

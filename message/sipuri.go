@@ -9,12 +9,10 @@ import (
 type URIScheme []byte
 
 var (
-	SIPScheme  = URIScheme("sip:")
-	SIPSScheme = URIScheme("sips:")
-)
-
-const (
-	ParamKVPSep = byte('=')
+	SIPScheme     = URIScheme("sip:")
+	SIPSScheme    = URIScheme("sips:")
+	SIPSchemeStr  = string(SIPScheme)
+	SIPSSchemeStr = string(SIPSScheme)
 )
 
 //The URIParams are defined in Section 19.1
@@ -31,17 +29,10 @@ const (
 	Other       = "other"
 )
 
-type URIHeader []rune
-type URIHeaderField struct {
-	Name  URIHeader
-	Value []rune // The value MUST be escaped following the section 19.1.2 Character Escaping Requirements
-}
-
-func (h URIHeaderField) Write(b *bytes.Buffer) {
-	b.WriteString(string(h.Name))
-	b.WriteByte('=')
-	b.WriteString(string(h.Value))
-}
+const (
+	URIHeaderSep    = byte('&')
+	URIHeaderSepStr = string(URIHeaderSep)
+)
 
 //SIPURI 19.1.1 SIP-URI components sip:user:password@host:port;uri-parameters?headers
 type SIPURI struct {
@@ -49,7 +40,7 @@ type SIPURI struct {
 	User    string
 	Host    string
 	Params  []KVP
-	Headers []URIHeaderField
+	Headers []KVP
 }
 
 func (s *SIPURI) FormatedContainsSep() bool {
@@ -109,7 +100,7 @@ func (s *SIPURI) isValid() error {
 func (s *SIPURI) printParams(b *bytes.Buffer) {
 	//Print the params
 	for _, p := range s.Params {
-		b.WriteByte(';')
+		b.WriteByte(ParamSep)
 		p.Write(b, ParamKVPSep)
 	}
 
@@ -120,8 +111,83 @@ func (s *SIPURI) printHeaders(b *bytes.Buffer) {
 	b.WriteByte('?') // ? is the separator between the params and headers
 	for i, h := range s.Headers {
 		if i > 0 {
-			b.WriteByte('&') // & is the header separator.
+			b.WriteByte(URIHeaderSep) // & is the header separator.
 		}
-		h.Write(b)
+		h.Write(b, ParamKVPSep)
 	}
+}
+
+func ParseURI(value string) (*SIPURI, error) {
+	const (
+		undefined = -1
+	)
+
+	var sipuri SIPURI
+
+	err := parseScheme(value, &sipuri)
+	if err != nil {
+		return nil, fmt.Errorf("failed parsing uri %w", err)
+	}
+
+	var (
+		iUser   = undefined
+		iHost   = undefined
+		iParam  = undefined
+		iHeader = undefined
+	)
+	for i, char := range value {
+		switch {
+		case char == ':' && iUser == undefined:
+			iUser = i + 1
+		case char == '@' && iHost == undefined:
+			iHost = i + 1
+		case char == ';' && iHost != undefined && iParam == undefined:
+			iParam = i + 1
+		case char == '?' && iParam != undefined:
+			iHeader = i + 1
+			break
+		}
+	}
+
+	if iUser == undefined || iHost == undefined {
+		return nil, fmt.Errorf("failed parsing uri %s", value)
+	}
+
+	sipuri.User = value[iUser : iHost-1]
+
+	if iParam != undefined {
+		sipuri.Host = value[iHost : iParam-1]
+	} else {
+		if iHeader != undefined {
+			sipuri.Host = value[iHost : iHeader-1]
+		} else {
+			sipuri.Host = value[iHost:]
+		}
+	}
+
+	if iParam != undefined {
+		if iHeader != undefined {
+			sipuri.Params = ParseKVPs(value[iParam:iHeader-1], ParamSepStr, ParamKVPSep)
+		} else {
+			sipuri.Params = ParseKVPs(value[iParam:], ParamSepStr, ParamKVPSep)
+		}
+	}
+
+	if iHeader != undefined {
+		sipuri.Headers = ParseKVPs(value[iHeader:], URIHeaderSepStr, ParamKVPSep)
+	}
+
+	return &sipuri, nil
+}
+
+func parseScheme(value string, sipuri *SIPURI) error {
+	switch {
+	case value[:4] == SIPSchemeStr:
+		sipuri.Scheme = &SIPScheme
+	case value[:5] == SIPSSchemeStr:
+		sipuri.Scheme = &SIPSScheme
+	default:
+		return fmt.Errorf("invalid scheme")
+	}
+	return nil
 }

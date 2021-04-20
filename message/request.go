@@ -55,6 +55,12 @@ type Request struct {
 	Body       []byte
 }
 
+func (r Request) String() string {
+	var b bytes.Buffer
+	r.Write(&b)
+	return b.String()
+}
+
 func (r Request) Write(w io.Writer) error {
 	var b bytes.Buffer
 	// RequestLine
@@ -62,7 +68,7 @@ func (r Request) Write(w io.Writer) error {
 	b.WriteByte(SP)
 	b.WriteString(string(r.RequestURI))
 	b.WriteByte(SP)
-	b.Write([]byte(Version))
+	b.WriteString(Version)
 	b.Write(CRLF)
 
 	//Headers

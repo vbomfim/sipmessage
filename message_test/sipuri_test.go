@@ -15,10 +15,10 @@ func TestURIFormat(t *testing.T) {
 	params := []message.KVP{
 		{Key: message.Transport, Value: "TCP"},
 	}
-	uriHeaders := []message.URIHeaderField{
-		{Name: []rune("subject"), Value: []rune(url.PathEscape("project x"))},
-		{Name: []rune("priority"), Value: []rune("urgent")},
-		{Name: []rune("to"), Value: []rune(url.QueryEscape("alice@atlanta.com"))},
+	uriHeaders := []message.KVP{
+		{Key: "subject", Value: url.PathEscape("project x")},
+		{Key: "priority", Value: "urgent"},
+		{Key: "to", Value: (url.QueryEscape("alice@atlanta.com"))},
 	}
 
 	uri := message.SIPURI{
