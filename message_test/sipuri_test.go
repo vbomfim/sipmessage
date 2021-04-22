@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/vbomfim/sipmessage/message"
+	"github.com/vbomfim/sipmessage/message/param"
 )
 
 func TestURIFormat(t *testing.T) {
@@ -13,7 +14,7 @@ func TestURIFormat(t *testing.T) {
 	user := "alice"
 	host := "atlanta.com"
 	params := []message.KVP{
-		{Key: message.Transport, Value: "TCP"},
+		{Key: param.Transport, Value: "TCP"},
 	}
 	uriHeaders := []message.KVP{
 		{Key: "subject", Value: url.PathEscape("project x")},

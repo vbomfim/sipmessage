@@ -7,16 +7,19 @@ import (
 	"strings"
 )
 
+//CSeq represents the CSeq SIP Header
 type CSeq struct {
 	Seq    uint32
 	Method Method
 }
 
-func (_ CSeq) Tag() string {
+//Header returns the header tag
+func (CSeq) Header() string {
 	return "CSeq"
 }
 
-func (_ CSeq) CTag() string {
+//CHeader returns the compact header tag
+func (CSeq) CHeader() string {
 	return "CSeq"
 }
 
@@ -29,6 +32,7 @@ func (c CSeq) String() string {
 	return b.String()
 }
 
+//ParseCSeq parses a string value to a CSeq instance
 func ParseCSeq(value string) (*CSeq, error) {
 	fields := strings.Fields(value)
 	if len(fields) != 2 {

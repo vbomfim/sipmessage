@@ -3,18 +3,23 @@ package message
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"strings"
 )
 
 const (
-	ParamSep    = byte(';')
-	ParamSepStr = string(ParamSep)
-	ParamKVPSep = byte('=')
+	paramSep    = byte(';')
+	paramSepStr = string(paramSep)
+	paramKVPSep = byte('=')
 )
 
+//Defining errors
 var (
-	//HeaderSep is the separator used between the Header and its value when printed
-	HeaderSep = byte(':')
+	ErrUnknownHeader = errors.New("message.Header: Unknown header")
+)
+var (
+	//headerSep is the separator used between the Header and its value when printed
+	headerSep = byte(':')
 	//CRLF defines the end of line.
 	CRLF          = []byte{'\r', '\n'}
 	strCRLF       = string(CRLF)
@@ -23,15 +28,15 @@ var (
 
 //Header is a type used by the SIP Headers. []byte is a convenient way to parse and write.
 type Header interface {
-	Tag() string
-	CTag() string // Tag in the compact form
+	Header() string
+	CHeader() string // Tag in the compact form
 	String() string
 }
 
-//Write method writes the HeaderField following the section 7.3.1
+//WriteHeader method writes the HeaderField following the section 7.3.1
 func WriteHeader(b *bytes.Buffer, h Header) {
-	b.WriteString(h.Tag())
-	b.WriteByte(HeaderSep)
+	b.WriteString(h.Header())
+	b.WriteByte(headerSep)
 	b.WriteByte(SP)
 	b.WriteString(h.String())
 	b.Write(CRLF)
@@ -74,9 +79,10 @@ func ParseHeaders(line string) ([]Header, error) {
 	return headers, nil
 }
 
+//ParseHeader parses a byte slice value to a Header instance
 func ParseHeader(b []byte) (Header, error) {
 
-	if kvp, OK := ParseKVP(b, HeaderSep); OK {
+	if kvp, OK := ParseKVP(b, headerSep); OK {
 		switch strings.ToLower(kvp.Key) {
 		case "max-forwards":
 			return ParseMaxForwards(kvp.Value)
@@ -92,10 +98,12 @@ func ParseHeader(b []byte) (Header, error) {
 			return ParseContentLength(kvp.Value)
 		case "cseq":
 			return ParseCSeq(kvp.Value)
+		case "via", "v":
+			return ParseVia(kvp.Value)
 		}
 	}
 
-	return nil, nil
+	return nil, ErrUnknownHeader
 }
 
 func isSpaceOrTab(char byte) bool {

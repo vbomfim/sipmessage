@@ -21,7 +21,7 @@ func TestParseHeaders(t *testing.T) {
 	sb.WriteString("\r\n")
 	headers, _ := message.ParseHeaders(sb.String())
 	for _, header := range headers {
-		fmt.Println(header.Tag(), "->", header.String())
+		fmt.Println(header.Header(), "->", header.String())
 	}
 
 }

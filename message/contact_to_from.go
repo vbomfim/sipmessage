@@ -6,64 +6,70 @@ import (
 	"strings"
 )
 
-//To
+//To represents the To SIP Header
 type To struct {
 	DisplayName string
 	SIPURI      SIPURI
 	Params      []KVP
 }
 
-func (_ To) Tag() string {
+//Header returns the header tag
+func (To) Header() string {
 	return "To"
 }
 
-func (_ To) CTag() string {
+//CHeader returns the compact header tag
+func (To) CHeader() string {
 	return "t"
 }
 
 func (c To) String() string {
-	return printInContactFormat(c.DisplayName, c.SIPURI, c.Params)
+	return printContactFormat(c.DisplayName, c.SIPURI, c.Params)
 }
 
-//From
+//From represents the From SIP Header
 type From struct {
 	DisplayName string
 	SIPURI      SIPURI
 	Params      []KVP
 }
 
-func (_ From) Tag() string {
+//Header returns the header tag
+func (From) Header() string {
 	return "From"
 }
 
-func (_ From) CTag() string {
+//CHeader returns the compact header tag
+func (From) CHeader() string {
 	return "f"
 }
 
 func (c From) String() string {
-	return printInContactFormat(c.DisplayName, c.SIPURI, c.Params)
+	return printContactFormat(c.DisplayName, c.SIPURI, c.Params)
 }
 
-//Contact
+//Contact represents the Contact SIP Header
 type Contact struct {
 	DisplayName string
 	SIPURI      SIPURI
 	Params      []KVP
 }
 
-func (_ Contact) Tag() string {
+//Header returns the header tag
+func (Contact) Header() string {
 	return "Contact"
 }
 
-func (_ Contact) CTag() string {
+//CHeader returns the compact header tag
+func (Contact) CHeader() string {
 	return "m"
 }
 
 func (c Contact) String() string {
-	return printInContactFormat(c.DisplayName, c.SIPURI, c.Params)
+	return printContactFormat(c.DisplayName, c.SIPURI, c.Params)
 }
 
-func printInContactFormat(displayName string, SIPURI SIPURI, params []KVP) string {
+func printContactFormat(displayName string, SIPURI SIPURI, params []KVP) string {
 	var b bytes.Buffer
 
 	needAngleBrackets := displayName != "" || len(params) > 0 || SIPURI.FormatedContainsSep()
@@ -84,7 +90,10 @@ func printInContactFormat(displayName string, SIPURI SIPURI, params []KVP) strin
 		b.WriteByte('<')
 	}
 
-	SIPURI.Write(&b)
+	err := SIPURI.Write(&b)
+	if err != nil {
+		b.WriteString("INVALIDURI")
+	}
 
 	if needAngleBrackets {
 		b.WriteByte('>')
@@ -93,16 +102,18 @@ func printInContactFormat(displayName string, SIPURI SIPURI, params []KVP) strin
 	if len(params) > 0 {
 		//Print the params
 		for _, p := range params {
-			b.WriteByte(ParamSep)
-			p.Write(&b, ParamKVPSep)
+			b.WriteByte(paramSep)
+			p.Write(&b, paramKVPSep)
 		}
 	}
 
 	return b.String()
 }
 
+//NewContactHeaderFunc is a function type to be implemented by Constructors of Contact style types like From, To and Contact
 type NewContactHeaderFunc func(displayName string, SIPURI *SIPURI, params []KVP) (Header, error)
 
+//NewTo is a constructor of the To Header
 func NewTo(displayName string, sipuri *SIPURI, params []KVP) (Header, error) {
 	if sipuri == nil {
 		return nil, fmt.Errorf("sipuri is mandatory")
@@ -113,6 +124,8 @@ func NewTo(displayName string, sipuri *SIPURI, params []KVP) (Header, error) {
 		Params:      params,
 	}, nil
 }
+
+//NewFrom is a constructor of the From Header
 func NewFrom(displayName string, sipuri *SIPURI, params []KVP) (Header, error) {
 	if sipuri == nil {
 		return nil, fmt.Errorf("sipuri is mandatory")
@@ -124,6 +137,7 @@ func NewFrom(displayName string, sipuri *SIPURI, params []KVP) (Header, error) {
 	}, nil
 }
 
+//NewContact is a constructor of the Contact Header
 func NewContact(displayName string, sipuri *SIPURI, params []KVP) (Header, error) {
 	if sipuri == nil {
 		return nil, fmt.Errorf("sipuri is mandatory")
@@ -135,20 +149,7 @@ func NewContact(displayName string, sipuri *SIPURI, params []KVP) (Header, error
 	}, nil
 }
 
-/*ParseContact
-Contact        =  ("Contact" / "m" ) HCOLON
-                  ( STAR / (contact-param *(COMMA contact-param)))
-contact-param  =  (name-addr / addr-spec) *(SEMI contact-params)
-name-addr      =  [ display-name ] LAQUOT addr-spec RAQUOT
-addr-spec      =  SIP-URI / SIPS-URI / absoluteURI
-display-name   =  *(token LWS)/ quoted-string
-
-contact-params     =  c-p-q / c-p-expires
-                      / contact-extension
-c-p-q              =  "q" EQUAL qvalue
-c-p-expires        =  "expires" EQUAL delta-seconds
-contact-extension  =  generic-param
-*/
+//ParseContact parses a string value to a Contact instance and returns as a Header interface
 func ParseContact(value string, new NewContactHeaderFunc) (Header, error) {
 
 	/*
@@ -218,7 +219,7 @@ func ParseContact(value string, new NewContactHeaderFunc) (Header, error) {
 	}
 
 	if hasParams {
-		params = ParseKVPs(value[iParamSep+1:], ParamSepStr, ParamKVPSep)
+		params = ParseKVPs(value[iParamSep+1:], paramSepStr, paramKVPSep)
 	}
 
 	return new(displayName, sipuri, params)

@@ -30,7 +30,7 @@ func TestToHeader(t *testing.T) {
 	t.Run("Testing the TAG", func(t *testing.T) {
 		want := "To"
 		to := message.To{}
-		got := to.Tag()
+		got := to.Header()
 
 		if want != got {
 			t.Fatalf("wrong TAG\nwant:\n%s\ngot:\n%s", want, got)

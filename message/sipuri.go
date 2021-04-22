@@ -6,8 +6,10 @@ import (
 	"strings"
 )
 
+//URIScheme represents a Scheme type in the SIPURI specification - SIP: or SIPS:
 type URIScheme []byte
 
+//Define the URIScheme values
 var (
 	SIPScheme     = URIScheme("sip:")
 	SIPSScheme    = URIScheme("sips:")
@@ -15,23 +17,9 @@ var (
 	SIPSSchemeStr = string(SIPSScheme)
 )
 
-//The URIParams are defined in Section 19.1
 const (
-	User        = "user"
-	Password    = "password"
-	Host        = "host"
-	Port        = "port"
-	MethodParam = "method"
-	MAddr       = "maddr"
-	TTL         = "ttl"
-	Transport   = "transport"
-	LR          = "lr"
-	Other       = "other"
-)
-
-const (
-	URIHeaderSep    = byte('&')
-	URIHeaderSepStr = string(URIHeaderSep)
+	uriHeaderSep    = byte('&')
+	uriHeaderSepStr = string(uriHeaderSep)
 )
 
 //SIPURI 19.1.1 SIP-URI components sip:user:password@host:port;uri-parameters?headers
@@ -43,20 +31,25 @@ type SIPURI struct {
 	Headers []KVP
 }
 
+//FormatedContainsSep checks if the formated version includes separators.
+//This function is primarily used by the Contact format.
 func (s *SIPURI) FormatedContainsSep() bool {
 	return len(s.Params) > 0 || len(s.Headers) > 0 || strings.ContainsAny(s.User, ";,")
 }
 
 func (s SIPURI) String() string {
 	var b bytes.Buffer
-	s.Write(&b)
+
+	if s.Write(&b) != nil {
+		return "INVALIDSIPURI"
+	}
 	return b.String()
 }
 
 //Write method writes the SIPURI formated to a byte Buffer
 func (s *SIPURI) Write(b *bytes.Buffer) error {
 
-	if err := s.isValid(); err != nil {
+	if err := s.IsValid(); err != nil {
 		return err
 	}
 
@@ -74,7 +67,7 @@ func (s *SIPURI) Write(b *bytes.Buffer) error {
 	b.WriteString(s.Host)
 
 	if len(s.Params) > 0 {
-		s.printParams(b)
+		WriteKVPs(b, s.Params, paramSep, paramKVPSep)
 	}
 
 	if len(s.Headers) > 0 {
@@ -84,8 +77,8 @@ func (s *SIPURI) Write(b *bytes.Buffer) error {
 	return nil
 }
 
-//isValid check if the mandatory fields are present
-func (s *SIPURI) isValid() error {
+//IsValid check if the mandatory fields are present
+func (s *SIPURI) IsValid() error {
 	if len(s.Host) == 0 {
 		return fmt.Errorf("host is mandatory")
 	}
@@ -96,27 +89,18 @@ func (s *SIPURI) isValid() error {
 	return nil
 }
 
-//printParams is used by Write to format and print the Params
-func (s *SIPURI) printParams(b *bytes.Buffer) {
-	//Print the params
-	for _, p := range s.Params {
-		b.WriteByte(ParamSep)
-		p.Write(b, ParamKVPSep)
-	}
-
-}
-
 //printHeaders is used by Write to format and print the headers
 func (s *SIPURI) printHeaders(b *bytes.Buffer) {
 	b.WriteByte('?') // ? is the separator between the params and headers
 	for i, h := range s.Headers {
 		if i > 0 {
-			b.WriteByte(URIHeaderSep) // & is the header separator.
+			b.WriteByte(uriHeaderSep) // & is the header separator.
 		}
-		h.Write(b, ParamKVPSep)
+		h.Write(b, paramKVPSep)
 	}
 }
 
+//ParseURI parses a string value to a SIPURI instance
 func ParseURI(value string) (*SIPURI, error) {
 	const (
 		undefined = -1
@@ -135,6 +119,7 @@ func ParseURI(value string) (*SIPURI, error) {
 		iParam  = undefined
 		iHeader = undefined
 	)
+Loop:
 	for i, char := range value {
 		switch {
 		case char == ':' && iUser == undefined:
@@ -145,7 +130,7 @@ func ParseURI(value string) (*SIPURI, error) {
 			iParam = i + 1
 		case char == '?' && iParam != undefined:
 			iHeader = i + 1
-			break
+			break Loop
 		}
 	}
 
@@ -167,14 +152,14 @@ func ParseURI(value string) (*SIPURI, error) {
 
 	if iParam != undefined {
 		if iHeader != undefined {
-			sipuri.Params = ParseKVPs(value[iParam:iHeader-1], ParamSepStr, ParamKVPSep)
+			sipuri.Params = ParseKVPs(value[iParam:iHeader-1], paramSepStr, paramKVPSep)
 		} else {
-			sipuri.Params = ParseKVPs(value[iParam:], ParamSepStr, ParamKVPSep)
+			sipuri.Params = ParseKVPs(value[iParam:], paramSepStr, paramKVPSep)
 		}
 	}
 
 	if iHeader != undefined {
-		sipuri.Headers = ParseKVPs(value[iHeader:], URIHeaderSepStr, ParamKVPSep)
+		sipuri.Headers = ParseKVPs(value[iHeader:], uriHeaderSepStr, paramKVPSep)
 	}
 
 	return &sipuri, nil

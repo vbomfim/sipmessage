@@ -24,7 +24,7 @@ type Method = string
 // OPTIONS for querying servers about their capabilities.
 // SIP extensions, documented in standards track RFCs, may define
 // additional methods.
-var (
+const (
 	REGISTER  = Method("REGISTER")
 	INVITE    = Method("INVITE")
 	ACK       = Method("ACK")
@@ -35,11 +35,11 @@ var (
 	NOTIFY    = Method("NOTIFY")
 	REFER     = Method("REFER")
 	INFO      = Method("INFO")
-
-	Methods = []Method{REGISTER, INVITE, ACK, CANCEL, BYE, OPTIONS, SUBSCRIBE, NOTIFY, REFER, INFO}
 )
 
 var (
+	//Methods holds the list of All Request Methods
+	Methods = []Method{REGISTER, INVITE, ACK, CANCEL, BYE, OPTIONS, SUBSCRIBE, NOTIFY, REFER, INFO}
 	//SP means space. This is the separator between the Request Line fields.
 	SP = byte(' ')
 )
@@ -57,7 +57,9 @@ type Request struct {
 
 func (r Request) String() string {
 	var b bytes.Buffer
-	r.Write(&b)
+	if r.Write(&b) != nil {
+		return "INVALIDREQUEST"
+	}
 	return b.String()
 }
 
